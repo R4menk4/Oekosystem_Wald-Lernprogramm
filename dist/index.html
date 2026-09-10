@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nahrungsnetz im Wald</title>
+  <meta name="description" content="Ein schrittweises Lernprogramm zu Nahrungsketten und Nahrungsnetzen im Wald.">
+  <style>
+    :root {
+      --forest:#123c2d; --forest-2:#1d6045; --leaf:#3d8b58; --lime:#dff1d7;
+      --cream:#fffdf5; --ink:#173028; --muted:#52655e; --line:#c8d8cf;
+      --good:#197344; --good-bg:#e1f5e8; --bad:#a63b31; --bad-bg:#fce9e5;
+      --gold:#f2c14e; --shadow:0 16px 40px rgba(18,60,45,.13);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(160deg,#eef7eb,#dcefe2 52%,#f8f3dc);color:var(--ink);font:18px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+    button{font:inherit}
+    .shell{width:min(1120px,calc(100% - 24px));margin:18px auto 40px}
+    header{display:flex;align-items:center;gap:18px;background:var(--forest);color:white;padding:18px 24px;border-radius:22px 22px 0 0}
+    header .mark{width:50px;height:50px;display:grid;place-items:center;border-radius:50%;background:var(--gold);color:var(--forest);font-size:28px;font-weight:900}
+    header h1{font-size:clamp(1.35rem,3vw,2rem);line-height:1.1;margin:0;font-weight:800}
+    header p{margin:4px 0 0;color:#d9eee4;font-size:.95rem}
+    .progress-wrap{background:#fff;padding:14px 24px;border-bottom:1px solid var(--line)}
+    .progress-label{display:flex;justify-content:space-between;gap:12px;font-weight:700;font-size:.88rem;margin-bottom:7px}
+    .progress{height:12px;background:#e4ece8;border-radius:999px;overflow:hidden}
+    .progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--leaf),var(--gold));transition:width .35s ease}
+    main{background:rgba(255,253,245,.96);min-height:670px;padding:clamp(20px,4vw,42px);border-radius:0 0 22px 22px;box-shadow:var(--shadow)}
+    .screen{display:none}.screen.active{display:block;animation:fade .25s ease}
+    @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+    h2{font-size:clamp(1.5rem,3vw,2.25rem);line-height:1.18;margin:0 0 12px;color:var(--forest)}
+    h3{font-size:1.05rem;margin:0 0 10px}
+    .lead{font-size:1.08rem;max-width:760px;margin:0 0 24px}
+    .tip{display:flex;gap:12px;align-items:flex-start;background:var(--lime);border-left:6px solid var(--leaf);padding:14px 16px;border-radius:12px;margin:18px 0}
+    .tip strong{display:block}.tip span[aria-hidden]{font-size:1.4rem}
+    .actions{display:flex;justify-content:flex-end;gap:12px;margin-top:28px;flex-wrap:wrap}
+    .btn{border:0;border-radius:12px;padding:12px 20px;font-weight:800;cursor:pointer;min-height:48px}
+    .btn-primary{background:var(--forest);color:white}.btn-primary:hover{background:var(--forest-2)}
+    .btn-secondary{background:#e3ece7;color:var(--forest)}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .cards{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:14px;margin:20px 0}
+    .organism{background:white;border:3px solid transparent;border-radius:15px;padding:0;overflow:hidden;box-shadow:0 5px 14px rgba(18,60,45,.1);cursor:pointer;transition:.16s;position:relative}
+    .organism:hover,.organism:focus-visible{transform:translateY(-3px);border-color:var(--gold)}
+    .organism.selected{border-color:var(--gold);box-shadow:0 0 0 4px rgba(242,193,78,.3)}
+    .organism.used{opacity:.4;pointer-events:none}
+    [hidden]{display:none!important}
+    [data-drag-source]{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+    [data-drag-source] img{-webkit-user-drag:none}
+    .drag-ghost{cursor:grabbing!important}
+    .drop-active{outline:4px solid var(--gold);outline-offset:2px}
+    .result-title{margin-top:32px}
+    .reference-chain .organism{width:100%}
+    .reference-chain .organism:disabled{opacity:1;cursor:default}
+    #resultNetwork .net-node{cursor:default}
+    @media(max-width:480px){.network{min-height:420px}.net-node{min-width:0!important;width:25%!important}.net-node span{font-size:.78rem!important}}
+    .bucket.drop-active{border-color:var(--forest);background:var(--lime);border-style:solid}
+    .drag-ghost{position:fixed;pointer-events:none;z-index:1000;width:110px;opacity:.9;transform:translate(-50%,-50%)}
+    button:focus-visible,.slot:focus-visible{outline:4px solid #946600;outline-offset:4px}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+    .organism img{width:100%;aspect-ratio:1/1;display:block;object-fit:cover}
+    .organism .name{display:block;padding:9px 5px;background:var(--forest);color:white;text-align:center;font-weight:900;font-size:.9rem;letter-spacing:.02em}
+    .sort-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+    .bucket{min-height:170px;border:3px dashed #8cad9b;background:#f5faf6;border-radius:16px;padding:18px;text-align:center}
+    .bucket button{margin-top:10px}.bucket .chosen{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+    .chip{background:white;border:2px solid var(--leaf);border-radius:999px;padding:7px 12px;font-weight:800}
+    .feedback{min-height:62px;margin-top:18px;padding:14px 16px;border-radius:12px;font-weight:700;display:none}
+    .feedback.show{display:block}.feedback.good{background:var(--good-bg);color:var(--good)}.feedback.bad{background:var(--bad-bg);color:var(--bad)}
+    .chain{display:grid;grid-template-columns:minmax(145px,1fr) 60px minmax(145px,1fr) 60px minmax(145px,1fr);align-items:center;gap:10px;margin:26px auto;max-width:850px}
+    .slot{min-height:190px;border:3px dashed #93ad9e;border-radius:16px;background:#f5faf6;display:grid;place-items:center;padding:10px;text-align:center;font-weight:800;cursor:pointer}
+    .slot.filled{border-style:solid;background:white}.slot img{width:108px;height:108px;object-fit:cover;border-radius:12px}.slot small{display:block}
+    .arrow{font-size:2.3rem;color:var(--forest);font-weight:900;text-align:center}
+    .network{position:relative;max-width:850px;aspect-ratio:4/3;margin:10px auto 0;background:radial-gradient(circle at 50% 55%,#fbf8e8,#e3f0dc);border-radius:22px;border:2px solid #c8dacb;overflow:hidden}
+    .network svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+    .net-node{position:absolute;width:19%;min-width:98px;transform:translate(-50%,-50%);border:3px solid white;border-radius:14px;background:white;padding:0;box-shadow:0 5px 18px rgba(18,60,45,.18);cursor:pointer;z-index:2;overflow:hidden}
+    .net-node img{width:100%;aspect-ratio:1/1;display:block;object-fit:cover}.net-node span{display:block;background:var(--forest);color:white;font-weight:900;padding:5px 2px;font-size:clamp(.65rem,1.6vw,.88rem)}
+    .net-node.active{outline:5px solid var(--gold)}
+    .node-oak{left:17%;top:78%}.node-berry{left:83%;top:78%}.node-mouse{left:50%;top:56%}.node-owl{left:22%;top:18%}.node-fox{left:78%;top:18%}
+    .net-status{text-align:center;font-weight:800;margin:10px 0;color:var(--forest)}
+    .question{border-top:1px solid var(--line);padding:20px 0}.question:first-of-type{border-top:0}
+    .choices{display:grid;gap:10px;max-width:760px}.choice{display:flex;align-items:center;gap:12px;text-align:left;background:white;border:2px solid var(--line);border-radius:12px;padding:13px 16px;cursor:pointer;font-weight:700}.choice:hover{border-color:var(--leaf)}.choice.correct{border-color:var(--good);background:var(--good-bg)}.choice.wrong{border-color:var(--bad);background:var(--bad-bg)}
+    .merksatz{background:var(--forest);color:white;border-radius:18px;padding:22px;font-size:1.15rem;margin:22px 0}.merksatz strong{color:#ffe18a}
+    .write-list{display:grid;gap:10px;margin:20px 0}.write-item{display:flex;gap:12px;align-items:center;background:white;border:1px solid var(--line);border-radius:12px;padding:12px 14px}.write-item b{width:30px;height:30px;border-radius:50%;background:var(--lime);display:grid;place-items:center}
+    .celebrate{text-align:center;font-size:4rem;line-height:1;margin-bottom:16px}
+    @media(max-width:760px){.cards{grid-template-columns:repeat(2,1fr)}.sort-grid{grid-template-columns:1fr}.chain{grid-template-columns:1fr 34px 1fr 34px 1fr;gap:5px}.slot{min-height:135px;font-size:.8rem}.slot img{width:78px;height:78px}.net-node{width:23%}main{min-height:720px}}
+    @media(max-width:480px){header{padding:14px}.progress-wrap{padding:12px 14px}main{padding:20px 14px}.chain{grid-template-columns:1fr;max-width:220px}.arrow{transform:rotate(90deg)}.net-node{width:23%}.net-node span{font-size:.58rem;padding:3px 1px}.network{border-radius:14px}}
+    @media print{body{background:white}.shell{width:100%;margin:0}header,.progress-wrap,.actions{display:none}main{box-shadow:none}.screen{display:none!important}.screen.active{display:block!important}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header><div class="mark" aria-hidden="true">↗</div><div><h1>Nahrungsnetz im Wald</h1><p>Schritt für Schritt vom Pfeil zum Netz</p></div></header>
+  <div class="progress-wrap"><div class="progress-label"><span id="stepLabel">Start</span><span id="stepCount">0 von 8</span></div><div class="progress" aria-label="Fortschritt"><div id="progressBar"></div></div></div>
+  <main>
+    <section class="screen active" data-screen="0">
+      <h2>Bereit für das Nahrungsnetz?</h2>
+      <p class="lead">Du kennst bereits Nahrungsketten. Jetzt verbindest du mehrere Nahrungsketten zu einem Nahrungsnetz.</p>
+      <div class="tip"><span aria-hidden="true">➤</span><div><strong>Pfeilregel</strong>Der Pfeil zeigt von der Nahrung zum Fresser.</div></div>
+      <div class="actions"><button class="btn btn-primary" data-next>Los geht's</button></div>
+    </section>
+
+    <section class="screen" data-screen="intro">
+      <h2>Produzenten und Konsumenten</h2>
+      <div class="sort-grid">
+        <div class="bucket"><h3>Produzenten stellen Nahrung her.</h3><p>Grüne Pflanzen stellen ihre Nahrung selbst her.<br>Dafür brauchen sie Licht, Wasser und Kohlenstoffdioxid aus der Luft.</p><p><strong>Zum Beispiel: Eiche und Brombeere.</strong></p></div>
+        <div class="bucket"><h3>Konsumenten nehmen Nahrung auf.</h3><p>Tiere können ihre Nahrung nicht selbst herstellen.<br>Sie fressen Pflanzen oder andere Tiere.</p><p><strong>Zum Beispiel: Waldmaus, Waldkauz und Rotfuchs.</strong></p></div>
+      </div>
+      <div class="actions"><button class="btn btn-primary" data-next>Weiter zu Aufgabe 1</button></div>
+    </section>
+
+    <section class="screen" data-screen="1">
+      <h2>1. Produzent oder Konsument?</h2>
+      <p class="lead">Ziehe eine Karte in die passende Gruppe.<br>Oder: Klicke auf eine Karte und dann auf „Hier einordnen“.</p>
+      <div class="cards" id="sortCards"></div>
+      <div class="sort-grid">
+        <div class="bucket" data-drop-bucket="producer"><h3>Produzenten</h3><div class="chosen" id="producerBucket"></div><button class="btn btn-secondary" data-bucket="producer">Hier einordnen</button></div>
+        <div class="bucket" data-drop-bucket="consumer"><h3>Konsumenten</h3><div class="chosen" id="consumerBucket"></div><button class="btn btn-secondary" data-bucket="consumer">Hier einordnen</button></div>
+      </div>
+      <div class="feedback" id="sortFeedback" role="status"></div>
+      <div class="actions"><button class="btn btn-primary" id="sortNext" data-next disabled>Weiter</button></div>
+    </section>
+
+    <section class="screen" data-screen="2">
+      <h2>2. Lege die erste Nahrungskette</h2>
+      <p class="lead">Ziehe eine Karte auf den passenden freien Platz.<br>Oder: Klicke auf die Karte und dann auf den Platz.</p>
+      <div class="tip"><span aria-hidden="true">➤</span><div><strong>Lies die Pfeile:</strong> „… dient … als Nahrung.“</div></div>
+      <div class="cards" id="chain1Cards"></div>
+      <div class="chain" id="chain1"><div class="slot" role="button" tabindex="0" data-slot="0">1. Nahrung</div><div class="arrow">→</div><div class="slot" role="button" tabindex="0" data-slot="1">2. Fresser</div><div class="arrow">→</div><div class="slot" role="button" tabindex="0" data-slot="2">3. Fresser</div></div>
+      <div class="feedback" id="chain1Feedback" role="status"></div>
+      <div class="actions"><button class="btn btn-secondary" data-reset-chain="1">Neu legen</button><button class="btn btn-secondary" id="chain1Check">Prüfen</button><button class="btn btn-primary" id="chain1Next" data-next disabled>Weiter</button></div>
+    </section>
+
+    <section class="screen" data-screen="3">
+      <h2>3. Lege die zweite Nahrungskette</h2>
+      <p class="lead">Ziehe eine Karte auf den passenden freien Platz.<br>Oder: Klicke auf die Karte und dann auf den Platz.</p>
+      <div class="cards" id="chain2Cards"></div>
+      <div class="chain" id="chain2"><div class="slot" role="button" tabindex="0" data-slot="0">1. Nahrung</div><div class="arrow">→</div><div class="slot" role="button" tabindex="0" data-slot="1">2. Fresser</div><div class="arrow">→</div><div class="slot" role="button" tabindex="0" data-slot="2">3. Fresser</div></div>
+      <div class="feedback" id="chain2Feedback" role="status"></div>
+      <div class="actions"><button class="btn btn-secondary" data-reset-chain="2">Neu legen</button><button class="btn btn-secondary" id="chain2Check">Prüfen</button><button class="btn btn-primary" id="chain2Next" data-next disabled>Weiter</button></div>
+    </section>
+
+    <section class="screen" data-screen="bridge">
+      <h2>Welches Lebewesen kommt in beiden Nahrungsketten vor?</h2>
+      <p class="lead">Klicke auf das Lebewesen in einer der beiden Nahrungsketten.</p>
+      <div id="compareChains"></div>
+      <div class="feedback" id="bridgeFeedback" role="status"></div>
+      <div class="actions"><button class="btn btn-primary" id="bridgeNext" data-next disabled>Verbinde die Nahrungsketten</button></div>
+    </section>
+
+    <section class="screen" data-screen="4">
+      <h2>4. Verbinde die Nahrungsketten</h2>
+      <p class="lead">Ziehe von der <strong>Nahrung</strong> zum <strong>Fresser</strong>.<br>Oder: Klicke zuerst auf die Nahrung und dann auf den Fresser. Finde alle fünf Verbindungen.</p>
+      <button class="btn btn-secondary" id="netHelp" aria-expanded="false" aria-controls="netHint">Hilfe</button>
+      <div class="tip" id="netHint" hidden>Manche Tiere im Nahrungsnetz fressen mehr als nur eine Nahrung. Schau besonders auf den Rotfuchs.</div>
+      <div class="network" id="network">
+        <svg viewBox="0 0 850 638" aria-hidden="true"><defs><marker id="head" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#123c2d"/></marker></defs><g id="arrowLayer"></g></svg>
+        <button class="net-node node-owl" data-id="owl"><img src="assets/image7.jpeg" alt="Waldkauz"><span>Waldkauz</span></button>
+        <button class="net-node node-fox" data-id="fox"><img src="assets/image8.jpeg" alt="Rotfuchs"><span>Rotfuchs</span></button>
+        <button class="net-node node-mouse" data-id="mouse"><img src="assets/image4.jpeg" alt="Waldmaus"><span>Waldmaus</span></button>
+        <button class="net-node node-oak" data-id="oak"><img src="assets/image1.jpeg" alt="Eiche"><span>Eiche</span></button>
+        <button class="net-node node-berry" data-id="berry"><img src="assets/image2.jpeg" alt="Brombeere"><span>Brombeere</span></button>
+      </div>
+      <div class="net-status" id="netStatus">0 von 5 Verbindungen gefunden</div>
+      <div class="feedback" id="netFeedback" role="status"></div>
+      <div class="actions"><button class="btn btn-secondary" id="netReset">Neu beginnen</button><button class="btn btn-primary" id="netNext" data-next disabled>Weiter</button></div>
+    </section>
+
+    <section class="screen" data-screen="5">
+      <h2>5. Was hast du herausgefunden?</h2>
+      <div class="question" data-answer="b"><h3>Ein Nahrungsnetz besteht aus …</h3><div class="choices"><button class="choice" data-value="a">nur einer Nahrungskette.</button><button class="choice" data-value="b">mehreren verbundenen Nahrungsketten.</button><button class="choice" data-value="c">nur aus Tieren.</button></div></div>
+      <div class="question" data-answer="b"><h3>Stell dir vor, es würde immer weniger Waldmäuse geben. Der Waldkauz findet dann …</h3><div class="choices"><button class="choice" data-value="a">mehr Nahrung.</button><button class="choice" data-value="b">weniger Nahrung.</button></div></div>
+      <div class="feedback" id="quizFeedback" role="status"></div>
+      <div class="actions"><button class="btn btn-primary" id="quizNext" data-next disabled>Zur Sicherung</button></div>
+    </section>
+
+    <section class="screen" data-screen="6">
+      <div class="celebrate" aria-hidden="true">🌿</div><h2>Geschafft!</h2>
+      <p class="lead">Du hast zwei Nahrungsketten zu einem Nahrungsnetz verbunden.</p>
+      <div class="merksatz"><strong>Merksatz:</strong><br>Ein Nahrungsnetz besteht aus mehreren miteinander verbundenen Nahrungsketten.</div>
+      <h3>Übertrage nun auf dein Arbeitsblatt:</h3>
+      <div class="write-list"><div class="write-item"><b>1</b> Schreibe die Namen der fünf Organismen in die Felder.</div><div class="write-item"><b>2</b> Zeichne die fünf Pfeile ein.</div><div class="write-item"><b>3</b> Schreibe den Merksatz ab.</div></div>
+      <h3>Deine Ergebnisse zum Nachschauen</h3>
+      <p>Scrolle nach unten. Hier findest du die Namen, die Pfeile und die Antworten.</p>
+      <div class="sort-grid"><div class="bucket"><h3>Produzenten</h3><p>Eiche und Brombeere</p></div><div class="bucket"><h3>Konsumenten</h3><p>Waldmaus, Waldkauz und Rotfuchs</p></div></div>
+      <h3 class="result-title">Die beiden Nahrungsketten</h3><div id="resultChains"></div>
+      <p>Die <strong>Waldmaus</strong> kommt in beiden Nahrungsketten vor. Deshalb können wir sie miteinander verbinden.</p>
+      <h3 class="result-title">Das vollständige Nahrungsnetz</h3>
+      <p><strong>Pfeilregel:</strong> Nahrung → Fresser</p><div id="resultNetwork"></div>
+      <ul id="resultEdges"></ul>
+      <h3 class="result-title">Die Antworten aus Aufgabe 5</h3><p>Ein Nahrungsnetz besteht aus <strong>mehreren verbundenen Nahrungsketten</strong>.</p><p>Wenn es immer weniger Waldmäuse gibt, findet der Waldkauz <strong>weniger Nahrung</strong>.</p>
+      <div class="merksatz"><strong>Schreibe diesen Merksatz auf dein Arbeitsblatt:</strong><br>Ein Nahrungsnetz besteht aus mehreren miteinander verbundenen Nahrungsketten.</div>
+      <div class="actions"><button class="btn btn-secondary" id="restart">Noch einmal üben</button></div>
+    </section>
+  </main>
+</div>
+<script>
+const organisms={oak:{name:'Eiche',img:'assets/image1.jpeg',type:'producer'},berry:{name:'Brombeere',img:'assets/image2.jpeg',type:'producer'},mouse:{name:'Waldmaus',img:'assets/image4.jpeg',type:'consumer'},owl:{name:'Waldkauz',img:'assets/image7.jpeg',type:'consumer'},fox:{name:'Rotfuchs',img:'assets/image8.jpeg',type:'consumer'}};
+let screen=0,selectedSort=null,sorted=new Set();
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function shuffle(ids){const a=[...ids];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let bridgeSolved=false;
+const screenOrder=[0,'intro',1,2,3,'bridge',4,5,6];
+function canAdvance(){return screen===0||screen==='intro'||(screen==='bridge'&&bridgeSolved)||(screen===1&&sorted.size===5)||(screen===2&&chains[1].solved)||(screen===3&&chains[2].solved)||(screen===4&&found.size===5)||(screen===5&&quizDone===2)}
+function showScreen(n){if(n===6)renderResults();screen=n;$$('.screen').forEach(x=>x.classList.toggle('active',x.dataset.screen===String(n)));$('#stepLabel').textContent=n===0?'Start':n==='intro'?'Wiederholung':n==='bridge'?'Nahrungsketten vergleichen':n===6?'Sicherung':`Aufgabe ${n}`;const i=screenOrder.indexOf(n);$('#stepCount').textContent=`${i} von 8`;$('#progressBar').style.width=`${i/8*100}%`;window.scrollTo({top:0,behavior:'instant'});const heading=$('.screen.active h2');heading.tabIndex=-1;heading.focus({preventScroll:true});}
+$$('[data-next]').forEach(b=>b.addEventListener('click',()=>{if(!b.disabled&&canAdvance())showScreen(screenOrder[screenOrder.indexOf(screen)+1])}));
+function card(id){const o=organisms[id];return `<button class="organism" data-id="${id}"><img src="${o.img}" alt="${o.name}"><span class="name">${o.name}</span></button>`}
+$('#sortCards').innerHTML=shuffle(Object.keys(organisms)).map(card).join('');
+function selectSort(id){if(!organisms[id]||sorted.has(id))return;selectedSort=id;$$('#sortCards .organism').forEach(c=>{c.classList.toggle('selected',c.dataset.id===id);c.setAttribute('aria-pressed',String(c.dataset.id===id))})}
+function placeSort(target){const f=$('#sortFeedback');if(!selectedSort){feedback(f,'bad','Wähle zuerst eine Karte aus.');return}const o=organisms[selectedSort];if(o.type!==target){feedback(f,'bad',target==='producer'?'Produzenten sind grüne Pflanzen. Schau dir die Karte noch einmal an.':'Konsumenten fressen Pflanzen oder andere Tiere. Schau dir die Karte noch einmal an.');return}sorted.add(selectedSort);const chip=document.createElement('span');chip.className='chip';chip.textContent=o.name;$('#'+target+'Bucket').append(chip);const c=$('#sortCards [data-id="'+selectedSort+'"]');c.classList.remove('selected');c.classList.add('used');c.disabled=true;c.draggable=false;c.setAttribute('aria-pressed','false');feedback(f,'good','Richtig! '+o.name+' ist '+(target==='producer'?'ein Produzent':'ein Konsument')+'.');selectedSort=null;if(sorted.size===5){feedback(f,'good','Sehr gut! Alle Organismen sind richtig eingeordnet.');$('#sortNext').disabled=false}}
+$('#sortCards').addEventListener('click',e=>{const c=e.target.closest('.organism');if(c)selectSort(c.dataset.id)});
+$$('[data-bucket]').forEach(b=>b.addEventListener('click',()=>placeSort(b.dataset.bucket)));
+function feedback(el,type,text){el.className=`feedback show ${type}`;el.textContent=(type==='good'?'✓ ':'↻ ')+text}
+const chains={1:{ids:['oak','mouse','owl'],pool:['owl','oak','mouse'],values:[null,null,null]},2:{ids:['berry','mouse','fox'],pool:['fox','mouse','berry'],values:[null,null,null]}};
+function setupChain(n){const c=chains[n],bank=$(`#chain${n}Cards`);bank.innerHTML=shuffle(c.pool).map(card).join('');c.selected=null;c.solved=false;bank.addEventListener('click',e=>{const x=e.target.closest('.organism');if(!x||x.classList.contains('used'))return;bank.querySelectorAll('.organism').forEach(y=>y.classList.remove('selected'));x.classList.add('selected');c.selected=x.dataset.id;});$(`#chain${n}`).addEventListener('click',e=>{const slot=e.target.closest('.slot');if(!slot||!c.selected)return;const i=+slot.dataset.slot;if(c.values[i])return;c.values[i]=c.selected;const o=organisms[c.selected];slot.classList.add('filled');slot.innerHTML=`<div><img src="${o.img}" alt="${o.name}"><small>${o.name}</small></div>`;bank.querySelector(`[data-id="${c.selected}"]`).classList.add('used');bank.querySelector(`[data-id="${c.selected}"]`).classList.remove('selected');c.selected=null;});$(`[data-reset-chain="${n}"]`).addEventListener('click',()=>resetChain(n));$(`#chain${n}Check`).addEventListener('click',()=>{const f=$(`#chain${n}Feedback`);if(c.values.some(v=>!v)){feedback(f,'bad','Lege zuerst alle drei Karten in die freien Felder.');return}if(c.values.join()===c.ids.join()){c.solved=true;feedback(f,'good','Richtig! Die Nahrungskette stimmt.');$(`#chain${n}Next`).disabled=false}else{feedback(f,'bad','Die Reihenfolge stimmt noch nicht. Denke an die Pfeilregel: Nahrung → Fresser.') }});}
+function resetChain(n){const c=chains[n];c.values=[null,null,null];c.selected=null;c.solved=false;$(`#chain${n}Next`).disabled=true;$(`#chain${n}`).querySelectorAll('.slot').forEach((s,i)=>{s.className='slot';s.textContent=i===0?'1. Nahrung':i===1?'2. Fresser':'3. Fresser'});$(`#chain${n}Cards`).querySelectorAll('.organism').forEach(x=>x.classList.remove('used','selected'));$(`#chain${n}Feedback`).className='feedback';}
+setupChain(1);setupChain(2);
+$$('.slot').forEach(s=>s.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();s.click()}}));
+const valid=new Set(['oak-mouse','berry-mouse','berry-fox','mouse-owl','mouse-fox']);let netFirst=null,found=new Set();
+const coords={oak:[145,500],berry:[705,500],mouse:[425,355],owl:[185,115],fox:[665,115]};
+function drawArrow(key){const [a,b]=key.split('-'),[x1,y1]=coords[a],[x2,y2]=coords[b];const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy),pad1=82,pad2=92;const sx=x1+dx/len*pad1,sy=y1+dy/len*pad1,ex=x2-dx/len*pad2,ey=y2-dy/len*pad2;const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',sx);line.setAttribute('y1',sy);line.setAttribute('x2',ex);line.setAttribute('y2',ey);line.setAttribute('stroke','#123c2d');line.setAttribute('stroke-width','9');line.setAttribute('stroke-linecap','round');line.setAttribute('marker-end','url(#head)');line.dataset.key=key;$('#arrowLayer').append(line)}
+$$('.net-node').forEach(n=>n.addEventListener('click',()=>{const id=n.dataset.id,f=$('#netFeedback');if(!netFirst){netFirst=id;n.classList.add('active');feedback(f,'good',`${organisms[id].name} ist ausgewählt. Klicke jetzt auf den Fresser.`);return}$$('.net-node').forEach(x=>x.classList.remove('active'));const key=`${netFirst}-${id}`;if(valid.has(key)&&!found.has(key)){found.add(key);drawArrow(key);feedback(f,'good',`Richtig: ${organisms[netFirst].name} dient ${organisms[id].name} als Nahrung.`)}else if(found.has(key)){feedback(f,'bad','Diesen Pfeil hast du schon eingezeichnet.')}else{feedback(f,'bad',`Das passt noch nicht. Frisst ${organisms[id].name} wirklich ${organisms[netFirst].name}?`)}netFirst=null;$('#netStatus').textContent=`${found.size} von 5 Verbindungen gefunden`;if(found.size===5){feedback(f,'good','Super! Du hast das Nahrungsnetz vollständig aufgebaut.');$('#netNext').disabled=false}}));
+$('#netReset').addEventListener('click',()=>{found.clear();netFirst=null;$('#arrowLayer').innerHTML='';$$('.net-node').forEach(x=>x.classList.remove('active'));$('#netStatus').textContent='0 von 5 Verbindungen gefunden';$('#netFeedback').className='feedback';$('#netNext').disabled=true});
+let quizDone=0;$$('.question').forEach(q=>{let solved=false;q.querySelectorAll('.choice').forEach(c=>c.addEventListener('click',()=>{if(solved)return;if(c.dataset.value===q.dataset.answer){c.classList.add('correct');c.textContent='✓ '+c.textContent;solved=true;quizDone++;feedback($('#quizFeedback'),'good','Richtig!');if(quizDone===2){feedback($('#quizFeedback'),'good','Beide Antworten sind richtig.');$('#quizNext').disabled=false}}else{c.classList.add('wrong');c.textContent='↻ '+c.textContent;feedback($('#quizFeedback'),'bad','Überlege noch einmal und wähle eine andere Antwort.')}}))});
+
+function wireDrag(sources,targets,onDrop,canDrag=()=>true){
+  let active=null,pointer=null,suppressClick=false;
+  const clear=()=>{pointer?.ghost?.remove();pointer=null;active=null;targets.forEach(t=>t.classList.remove('drop-active'))};
+  const hit=(x,y)=>{const el=document.elementFromPoint(x,y);return targets.find(t=>t===el||t.contains(el))};
+  sources.forEach(source=>{
+    source.draggable=false;source.dataset.dragSource='true';source.querySelectorAll('img').forEach(i=>i.draggable=false);
+    source.addEventListener('dragstart',e=>e.preventDefault());
+    source.addEventListener('click',e=>{if(suppressClick&&e.isTrusted){e.preventDefault();e.stopImmediatePropagation();suppressClick=false}},true);
+    source.addEventListener('pointerdown',e=>{if((e.button!==undefined&&e.button!==0)||!canDrag(source))return;suppressClick=false;pointer={id:e.pointerId,x:e.clientX,y:e.clientY,source,moved:false};source.setPointerCapture(e.pointerId)});
+    source.addEventListener('pointermove',e=>{if(!pointer||pointer.id!==e.pointerId)return;if(!pointer.moved&&Math.hypot(e.clientX-pointer.x,e.clientY-pointer.y)<8)return;e.preventDefault();if(!pointer.moved){pointer.moved=true;pointer.ghost=source.cloneNode(true);pointer.ghost.removeAttribute('id');pointer.ghost.classList.add('drag-ghost');pointer.ghost.classList.remove('net-node');pointer.ghost.setAttribute('aria-hidden','true');document.body.append(pointer.ghost)}pointer.ghost.style.left=e.clientX+'px';pointer.ghost.style.top=e.clientY+'px';const target=hit(e.clientX,e.clientY);targets.forEach(t=>t.classList.toggle('drop-active',t===target))});
+    source.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const moved=pointer.moved,target=hit(e.clientX,e.clientY);clear();if(moved){suppressClick=true;if(target&&canDrag(source))onDrop(source,target)}});
+    source.addEventListener('pointercancel',clear);source.addEventListener('lostpointercapture',clear);
+  });
+  targets.forEach(target=>{target.addEventListener('dragover',e=>{if(!active)return;e.preventDefault();target.classList.add('drop-active')});target.addEventListener('dragleave',()=>target.classList.remove('drop-active'));target.addEventListener('drop',e=>{e.preventDefault();if(active&&canDrag(active))onDrop(active,target);clear()})});
+}
+wireDrag($$('#sortCards .organism'),$$('[data-drop-bucket]'),(source,target)=>{selectSort(source.dataset.id);placeSort(target.dataset.dropBucket)},s=>!sorted.has(s.dataset.id));
+for(const n of [1,2])wireDrag($$('#chain'+n+'Cards .organism'),$$('#chain'+n+' .slot'),(source,target)=>{source.click();target.click()},s=>!s.classList.contains('used'));
+wireDrag($$('#network .net-node'),$$('#network .net-node'),(source,target)=>{netFirst=null;$$('#network .net-node').forEach(n=>n.classList.remove('active'));source.click();target.click()});
+$('#netHelp').addEventListener('click',()=>{const expanded=$('#netHelp').getAttribute('aria-expanded')==='true';$('#netHelp').setAttribute('aria-expanded',String(!expanded));$('#netHint').hidden=expanded});
+function referenceChain(ids,interactive){return '<div class="chain reference-chain">'+ids.map(id=>card(id).replace('<button ',interactive?'<button ':'<button disabled ')).join('<div class="arrow" aria-label="dient als Nahrung für">→</div>')+'</div>'}
+$('#compareChains').innerHTML=referenceChain(chains[1].ids,true)+referenceChain(chains[2].ids,true);
+$('#compareChains').addEventListener('click',e=>{const c=e.target.closest('.organism');if(!c||bridgeSolved)return;if(c.dataset.id==='mouse'){bridgeSolved=true;$$('#compareChains [data-id="mouse"]').forEach(x=>x.classList.add('selected'));feedback($('#bridgeFeedback'),'good','Genau! Wir können die Nahrungsketten also miteinander verbinden.');$('#bridgeNext').disabled=false}else feedback($('#bridgeFeedback'),'bad','Schau noch einmal: Welches Lebewesen siehst du in beiden Nahrungsketten?')});
+$('#resultChains').innerHTML=referenceChain(chains[1].ids,false)+referenceChain(chains[2].ids,false);
+function renderResults(){const net=$('#network').cloneNode(true);net.id='completedNetwork';net.querySelector('#head').id='resultHead';net.querySelector('#arrowLayer').removeAttribute('id');net.querySelectorAll('line').forEach(l=>l.setAttribute('marker-end','url(#resultHead)'));net.querySelectorAll('button').forEach(b=>{b.disabled=true;b.draggable=false;b.classList.remove('active','drop-active');b.querySelectorAll('img').forEach(i=>i.draggable=false)});$('#resultNetwork').replaceChildren(net);$('#resultEdges').innerHTML=[...valid].map(key=>{const [a,b]=key.split('-');return '<li>'+organisms[a].name+' → '+organisms[b].name+'</li>'}).join('')}
+$('#restart').addEventListener('click',()=>location.reload());
+</script>
+</body>
+</html>

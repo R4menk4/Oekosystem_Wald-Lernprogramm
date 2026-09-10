@@ -1,0 +1,1 @@
+const fs=require('node:fs');const path=require('node:path');fs.copyFileSync(path.join(__dirname,'index.html'),path.join(__dirname,'dist/index.html'));fs.cpSync(path.join(__dirname,'assets'),path.join(__dirname,'dist/assets'),{recursive:true});console.log('dist aktualisiert.');
